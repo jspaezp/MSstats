@@ -17,7 +17,8 @@ Imports: Rcpp, lme4, marray, limma, gplots, ggplot2, methods, grid,
         ggrepel, preprocessCore, MSnbase, reshape2, survival,
         minpack.lm, utils, grDevices, graphics, stats, doSNOW, snow,
         foreach, data.table, MASS, dplyr, tidyr, stringr, randomForest
-Suggests: BiocStyle, knitr, rmarkdown, MSstatsBioData
+Suggests: BiocStyle, knitr, rmarkdown, MSstatsBioData,
+    testthat
 VignetteBuilder: knitr
 biocViews: MassSpectrometry, Proteomics, Software, Normalization,
         QualityControl, TimeCourse
