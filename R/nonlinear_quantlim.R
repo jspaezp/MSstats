@@ -28,6 +28,8 @@ nonlinear_quantlim <- function(datain, alpha = 0.05, Npoints = 100, Nbootstrap =
         print("incorrect specified value for alpha,  0 < alpha < 1")
         return(NULL)
     }
+    
+    # TODO  consider removing this section, since it is an explicit argument
   
     #Number of boostrap samples
     if(missing(Nbootstrap)){
@@ -58,7 +60,7 @@ nonlinear_quantlim <- function(datain, alpha = 0.05, Npoints = 100, Nbootstrap =
     datain <- datain[order(datain$C),] 
     tmp_nob <- subset(datain,datain$C >0)  
     tmp_all <- datain
-    tmp_blank <-subset(datain,datain$C == 0)
+    tmp_blank <- subset(datain,datain$C == 0)
   
     #Calculate the value of the noise:
     #Use the zero concentration to calculate the LOD:
@@ -72,7 +74,7 @@ nonlinear_quantlim <- function(datain, alpha = 0.05, Npoints = 100, Nbootstrap =
   
     n_blank = length(unique(tmp_blank$I))
 
-    if(nrow(tmp_blank) <= 1 || var_noise  <= 0){
+    if (nrow(tmp_blank) <= 1 || var_noise  <= 0) {
         print("Not enough blank samples!!!")
         return(NULL)
     }
@@ -82,9 +84,10 @@ nonlinear_quantlim <- function(datain, alpha = 0.05, Npoints = 100, Nbootstrap =
     #upper bound of noise prediction interval
     up_noise = noise   +  fac* sqrt(var_noise)
   
-    unique_c = sort(unique(tmp_all$C));   var_v <- rep(0.0, length(unique_c))
-    weights  <- rep(0.0, length(tmp_all$C));
-    weights_nob  <- rep(0.0, length(tmp_nob$C));
+    unique_c = sort(unique(tmp_all$C))   
+    var_v <- rep(0.0, length(unique_c))
+    weights  <- rep(0.0, length(tmp_all$C))
+    weights_nob  <- rep(0.0, length(tmp_nob$C))
   
     #Calculate variance for all concentrations keeping NA values:
     ii = 1

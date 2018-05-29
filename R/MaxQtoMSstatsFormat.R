@@ -46,6 +46,9 @@ MaxQtoMSstatsFormat <- function(evidence,
 		infile <- infile[-which(infile$Contaminant %in% "+"), ]
 	}
 	
+	# TODO consider changing any(is.element(colnames)) for 'xx' %in% colnames(...)
+	# it is a little faster (4 vs 5 microseconds ...) and more readable ...
+	
 	if (is.element("Potential.contaminant", colnames(infile)) & 
 	    is.element("+", unique(infile$Potential.contaminant))) {
 	    infile <- infile[-which(infile$Potential.contaminant %in% "+"), ]
@@ -103,7 +106,11 @@ MaxQtoMSstatsFormat <- function(evidence,
 	tempname <- unique(tempprotein[,c("Protein.IDs", "id")])
 	colnames(tempname) <- c("uniqueProteins", "Protein.group.IDs")
 	
-	infile <- merge(infile, tempname, by="Protein.group.IDs")
+    if (is.factor(infile$Protein.group.IDs)) {
+        # This step is necesary if the table was not read with as.is = TRUE
+        infile$Protein.group.IDs <- as.integer(as.character(infile$Protein.group.IDs))
+        }
+	infile <- dplyr::full_join(infile, tempname, by = "Protein.group.IDs")
 	
 	## get useful information
 	## ? can remove Retention.time column later
@@ -169,11 +176,14 @@ MaxQtoMSstatsFormat <- function(evidence,
 	################################################
 	if (useUniquePeptide) {
 		
-		pepcount <- unique(infile[, c("Proteins","Modified.sequence")]) ## Protein.group.IDs or Sequence
-		pepcount$Modified.sequence <- factor(pepcount$Modified.sequence)
+	    ## This step makes finding the unique peptides 10 times faster
+		pepcount <- sapply(infile[, c("Proteins","Modified.sequence")], as.character)
+		pepcount <- as.data.frame(unique(pepcount))
 		
 		## count how many proteins are assigned for each peptide
-		structure <- aggregate(Proteins ~ ., data=pepcount, length)
+		structure <- dplyr::summarise(
+		    dplyr::group_by( pepcount, Modified.sequence ),
+		    Proteins = dplyr::n())
 		remove_peptide <- structure[structure$Proteins != 1, ]
 		
 		## remove the peptides which are used in more than one protein
@@ -260,11 +270,11 @@ MaxQtoMSstatsFormat <- function(evidence,
 	
 	if (removeProtein_with1Peptide) {
 	    ## remove protein which has only one peptide
-	    infile_l$feature <- paste(infile_l$Modified.sequence, infile_l$Charge, sep="_")
+	    infile_l$feature <- paste(infile_l$Modified.sequence, infile_l$Charge, sep = "_")
 	  
 	    tmp <- unique(infile_l[, c("Proteins", 'feature')])
 	    tmp$Proteins <- factor(tmp$Proteins)
-	    count <- xtabs( ~ Proteins, data=tmp)
+	    count <- xtabs( ~ Proteins, data = tmp)
         lengthtotalprotein <- length(count)
     
 	    removepro <- names(count[count <= 1])
@@ -289,7 +299,15 @@ MaxQtoMSstatsFormat <- function(evidence,
 	infile_l$ProductCharge <- NA
 
 	## Create Condition & Bioreplicate columns; TODO: fill in with correct values
-	infile_l <- merge(infile_l, annot, by=c("Raw.file", "IsotopeLabelType"))
+    if (is.factor(infile_l$IsotopeLabelType) | is.factor(infile_l$Raw.file) |
+        is.factor(annot$Raw.file) | is.factor(annot$IsotopeLabelType)) {
+        # This step is necesary if the table was not read with as.is = TRUE
+        infile_l$IsotopeLabelType <- as.character(infile_l$IsotopeLabelType)
+        infile_l$Raw.file <- as.character(infile_l$Raw.file)
+        annot$Raw.file <- as.character(annot$Raw.file)
+        annot$IsotopeLabelType <- as.character(annot$IsotopeLabelType)
+        }
+	infile_l <- dplyr::full_join(infile_l, annot, by = c("Raw.file", "IsotopeLabelType"))
 
 	infile_l.final <- infile_l[, c(c("ProteinName", "PeptideSequence", "PrecursorCharge", 
                              "FragmentIon", "ProductCharge", "IsotopeLabelType", 
